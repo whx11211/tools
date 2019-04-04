@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>常用工具——JSON格式化</title>
+<link href="css/bootstrap.min.css" rel="stylesheet">
+<link href="css/font-awesome.min.css" rel="stylesheet">
+</head>
+
+<body>
+  <div class="container bs-docs-container">
+    <div class="col-xs-12 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+		<h1 id="overview" class="page-header">JSON格式化</h1>
+		<h3>输入JSON</h3>
+		<textarea id="json-input" class="form-control form-group" rows="10" placeholder=""></textarea>
+		<div class="form-group">
+		  <button id="translate" class="btn btn-default"><i class="fa fa-fw fa-arrow-down"></i></button>
+		  <button id="back" class="btn btn-default"><i class="fa fa-fw fa-arrow-up"></i></button>
+		</div>
+		<pre id="json-display" class="json-editor-blackbord form-group" style="min-height:500px;padding:10px 18px" contenteditable="true"></pre>
+	</div>
+  </div>
+</body>
+
+<script src="js/jquery.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script src="js/jquery.json-editor.min.js"></script>
+<script>
+	function getJson() {
+		if (!$('#json-input').val()) {
+			return '';
+		}
+		try {
+			return JSON.parse($('#json-input').val());
+		} catch (ex) {
+			alert('Wrong JSON Format: ' + ex);
+		}
+	}
+
+	
+    $('#translate').on('click', function () {
+		if (typeof editor == 'undefined') {
+			editor = new JsonEditor('#json-display', getJson());
+		}
+		else {
+			editor.load(getJson());
+		}
+	});
+	
+	$('#back').on('click', function () {
+		$('#json-input').val(JSON.stringify(editor.get()));
+	});
+	
+</script>
+</html>

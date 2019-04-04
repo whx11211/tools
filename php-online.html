@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>常用工具——PHP在线执行</title>
+<link href="css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+  <div class="container bs-docs-container">
+    <div class="col-xs-12 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+		<h1 id="overview" class="page-header">PHP在线执行</h1>
+		<p class="lead">PHP版本：<script src="php/?type=version" type="text/javascript"></script></p>
+		<h3>PHP代码</h3>
+		<pre id="editor" class="form-group" style="min-height:500px;font-size:14px;" contenteditable="true">&lt;?php
+</pre>
+		<div class="form-group">
+		  <button id="run" class="btn btn-default">执行</button>
+		</div>
+		<h3>执行结果</h3>
+		<pre id="res" class="form-group" style="min-height:100px;"></pre>
+	</div>
+  </div>
+</body>
+
+<script src="js/jquery.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script src="js/ace/ace.js" type="text/javascript" charset="utf-8"></script>
+<script src="js/ace/ext-language_tools.js"></script>
+<script>
+
+	var editor = ace.edit("editor");
+    ace.require("ace/ext/language_tools");
+    editor.setTheme("ace/theme/twilight");
+    editor.session.setMode("ace/mode/php");
+
+    editor.setOptions({
+        enableBasicAutocompletion: false,
+        enableSnippets: false,
+        enableLiveAutocompletion: true
+    });
+	
+    $('#run').on('click', function () {
+		var code = editor.getValue();
+		$('#res').html('正在执行……');
+		$.post('php/',{type:'run',code:code}, function(respone){
+			$('#res').html(respone);
+		});
+	});
+	
+	
+</script>
+</html>

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>常用工具——PHP数组助手</title>
+<link href="css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+  <div class="container bs-docs-container">
+    <div class="col-xs-12 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+		<h1 id="overview" class="page-header">PHP数组助手</h1>
+		<h3>需要处理的文本</h3>
+		<textarea id="input" class="form-control form-group" rows="10" placeholder=""></textarea>
+		
+		<div class="form-group">
+		  <button id="value" class="btn btn-default">生成值</button>
+		  <button id="key" class="btn btn-default">生成键</button>
+		  <button id="key_value" class="btn btn-default">键+值</button>
+		  <button id="value_key" class="btn btn-default">值+键</button>
+		  <button id="reg" class="btn btn-default">正则匹配</button>
+		</div>
+			
+		<div id="reg_contents" class="form-group" style="display:none">
+		  <div class="col-sm-4">
+		    <select id="reg_type" class="form-control"></select>
+		  </div>
+		  
+		  <div class="col-sm-5">
+		    <input id="key_reg" class="form-control" type="text" placeholder="键匹配正则" >
+		  </div>
+		  
+		  <div class="col-sm-5">
+		    <input id="value_reg" class="form-control" type="text" placeholder="值匹配正则" >
+		  </div>
+		</div>
+		
+		<pre id="res" class="json-editor-blackbord form-group" style="min-height:300px;padding:10px 18px" contenteditable="true"></pre>
+	</div>
+  </div>
+</body>
+
+<script src="js/jquery.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script>
+	
+    $('#value').on('click', function () {
+		var input = $('#input').val();
+		var res = '';
+		
+		var texts = input.split("\n");
+		
+		for(var i in texts) {
+			res += "    '" + texts[i] + "'\n";
+		}
+		
+		$('#res').html("array(\n"+res+");");
+	});
+	
+	$('#key').on('click', function () {
+		var input = $('#input').val();
+		var res = '';
+		
+		var texts = input.split("\n");
+		
+		var max_length = 4;
+		for(var i in texts) {
+			if (texts[i].length > max_length) {
+				max_length = texts[i].length;
+			}
+		}
+		max_length += 2;
+		max_length = Math.ceil(max_length/4) * 4 - 2;
+		
+		for(var i in texts) {
+			res += "    '" + texts[i] + "'" + ' '.repeat(max_length-texts[i].length) + "=>  '',\n";
+		}
+		
+		$('#res').html("array(\n"+res+");");
+	});
+	
+	$('#key_value').on('click', function () {
+		var input = $('#input').val();
+		var res = '';
+		
+		var texts = input.split("\n");
+		
+		var max_length = 4;
+		for(var i in texts) {
+			if (texts[i].match(/^\s*$/)) {
+				continue;
+			}
+			var text = texts[i].split("\t");
+			if (text[0].length > max_length) {
+				max_length = text[0].length;
+			}
+		}
+		max_length += 2;
+		max_length = Math.ceil(max_length/4) * 4 - 2;
+		
+		for(var i in texts) {
+			if (texts[i].match(/^\s*$/)) {
+				continue;
+			}
+			var text = texts[i].split("\t");
+			res += "    '" + text[0] + "'" + ' '.repeat(max_length-text[0].length) + "=>  '" + text[1] + "',\n";
+		}
+		
+		$('#res').html("array(\n"+res+");");
+	});
+	
+	$('#value_key').on('click', function () {
+		var input = $('#input').val();
+		var res = '';
+		
+		var texts = input.split("\n");
+		
+		var max_length = 4;
+		for(var i in texts) {
+			if (texts[i].match(/^\s*$/)) {
+				continue;
+			}
+			var text = texts[i].split("\t");
+			if (text[1].length > max_length) {
+				max_length = text[1].length;
+			}
+		}
+		max_length += 2;
+		max_length = Math.ceil(max_length/4) * 4 - 2;
+		
+		for(var i in texts) {
+			if (texts[i].match(/^\s*$/)) {
+				continue;
+			}
+			var text = texts[i].split("\t");
+			res += "    '" + text[1] + "'" + ' '.repeat(max_length-text[1].length) + "=>  '" + text[0] + "',\n";
+		}
+		
+		$('#res').html("array(\n"+res+");");
+	});
+	
+	var reg_map = [
+		{name:'IOS商品配置',reg_key:/(?<=vendorPid\s\=\s")[\S]+(?=")/,reg_value:/(?<=\[)\d+(?=\])/,selected:false},
+	];
+	
+	for (var i in reg_map) {
+		$('#reg_type').append('<option value="'+i+'" '+ (reg_map[i].selected ? 'selected' : '') +'>'+reg_map[i].name+'</option>');
+	}
+	
+	$('#reg_type').on('change', function(){
+		var i = $(this).val();
+		$('#key_reg').val(reg_map[i].reg_key);
+		$('#value_reg').val(reg_map[i].reg_value);
+	});
+	
+	$('#reg_type').trigger('change');
+	
+	$('#reg').on('click', function () {
+		$('#res').html("正在处理……");
+		if ($('#reg_contents').is(':hidden')) {
+			$('#reg_contents').css('display', 'flex');
+			return;
+		}
+		
+		try{
+			var key_reg = eval($('#key_reg').val());
+			var value_reg = eval($('#value_reg').val());
+		}
+		catch(err) {
+			alert(err);
+			return;
+		}
+	
+	
+		var input = $('#input').val();
+		var res = '';
+		
+		var texts = input.split("\n");
+		
+		var max_length = 4;
+		for(var i in texts) {
+			if (texts[i].match(/^\s*$/)) {
+				continue;
+			}
+			var key_match = texts[i].match(key_reg);
+			
+			if (key_match && key_match[0].length > max_length) {
+				max_length = key_match[0].length;
+			}
+		}
+		max_length += 2;
+		max_length = Math.ceil(max_length/4) * 4 - 2;
+		
+		for(var i in texts) {
+			if (texts[i].match(/^\s*$/)) {
+				continue;
+			}
+			
+			var key_match = texts[i].match(key_reg);
+			var value_match = texts[i].match(value_reg);
+			
+			if (!key_match || !key_match) {
+				res += '//' + texts[i] + "\n";
+			}
+			else {
+				res += "    '" + key_match[0] + "'" + ' '.repeat(max_length-key_match[0].length) + "=>  '" + value_match[0] + "',\n";
+			}
+		}
+		
+		$('#res').html("array(\n"+res+");");
+	});
+	
+	
+</script>
+</html>
