@@ -13,8 +13,7 @@
 		<h1 id="overview" class="page-header">PHP在线执行</h1>
 		<p class="lead">PHP版本：<script src="php/?type=version" type="text/javascript"></script></p>
 		<h3>PHP代码</h3>
-		<pre id="editor" class="form-group" style="min-height:500px;font-size:14px;" contenteditable="true">&lt;?php
-</pre>
+		<pre id="editor" class="form-group" style="min-height:500px;font-size:14px;" contenteditable="true"></pre>
 		<div class="form-group">
 		  <button id="run" class="btn btn-default">执行</button>
 		</div>
@@ -29,6 +28,15 @@
 <script src="js/ace/ace.js" type="text/javascript" charset="utf-8"></script>
 <script src="js/ace/ext-language_tools.js"></script>
 <script>
+	function HTMLEncode(html) {
+		return html.replace(/[<>&"]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c];});
+	}
+	
+	var code = window.localStorage.getItem('code');
+	if (!code) {
+		code = '&lt;?php\n';
+	}
+	$('#editor').html(code);
 
 	var editor = ace.edit("editor");
     ace.require("ace/ext/language_tools");
@@ -43,6 +51,7 @@
 	
     $('#run').on('click', function () {
 		var code = editor.getValue();
+		window.localStorage.setItem('code', HTMLEncode(code));
 		$('#res').html('正在执行……');
 		$.post('php/',{type:'run',code:code}, function(respone){
 			$('#res').html(respone);
