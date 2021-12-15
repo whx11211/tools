@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>常用工具——转化工具</title>
+<link href="css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+  <div class="container bs-docs-container">
+    <div class="col-xs-12 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+		<h1 id="overview" class="page-header">文本转化工具</h1>
+		<h3>需要处理的文本</h3>
+		<textarea id="input" class="form-control form-group" rows="10" placeholder=""></textarea>
+		
+		<div class="form-group">
+		  <button id="exp_quote" class="btn btn-default">拆分加双引号</button>
+		  <button id="url_param" class="btn btn-default">From表单参数</button>
+		  <button id="reg" class="btn btn-default">正则替换</button>
+		  <button id="reg_search" class="btn btn-default">正则查找</button>
+		</div>
+			
+		<div id="reg_contents" class="form-group reg-contents" style="display:none">
+		  <div class="col-sm-4">
+		    <select id="reg_type" class="form-control"></select>
+		  </div>
+		  
+		  <div class="col-sm-5">
+		    <input id="key_reg" class="form-control" type="text" placeholder="匹配正则" >
+		  </div>
+
+		  <div class="col-sm-12" style="margin:20px 0">
+			  <textarea id="value_reg" class="form-control" rows="9" placeholder="替换" ></textarea>
+		  </div>
+		</div>
+
+		<div id="reg_search_contents" class="form-group reg-contents" style="display:none">
+		  <div class="col-sm-4">
+		    <select id="reg_search_type" class="form-control"></select>
+		  </div>
+
+		  <div class="col-sm-5">
+		    <input id="key_search_reg" class="form-control" type="text" placeholder="匹配正则" >
+		  </div>
+
+		  <div class="col-sm-12" style="margin:20px 0">
+			  <textarea id="value_search_reg" class="form-control" rows="9" placeholder="生成规则" ></textarea>
+		  </div>
+		</div>
+		
+		<pre id="res" class="json-editor-blackbord form-group" style="min-height:300px;padding:10px 18px" contenteditable="true"></pre>
+	</div>
+  </div>
+</body>
+
+<script src="js/jquery.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script>
+	
+    $('#exp_quote').on('click', function () {
+		var input = $('#input').val();
+		
+		var texts = input.split("\n");
+
+		var res = [];
+		for(var i in texts) {
+			var ii = texts[i].split("\t");
+			for (var jj in ii) {
+				res[jj] ??= ",\n";
+				if (ii[jj].indexOf('.com') == -1) {
+					res[jj] += "\"" + ii[jj] + "\",\n";
+				} else {
+					res[jj+100] ??= ",\n";
+					res[jj] += "\"io." + ii[jj] + "\",\n";
+					res[jj+100] += "\"bd." + ii[jj] + "\",\n";
+				}
+			}
+		}
+
+		var res2 = '';
+		for (var i in res) {
+			res2 += res[i].substring(0, res[i].length-2) + "\n\n\n";
+		}
+
+		$('#res').html(res2);
+	});
+
+    $('#url_param').on('click', function () {
+		var input = $('#input').val();
+
+		var texts = input.replaceAll('&', '\n').replaceAll('=', ':');
+		$('#res').html(texts);
+	});
+
+	
+	var reg_map = [
+		{name:'竖转横',reg_key:/\n/g,reg_value:`value_reg = function(v) {
+  return " ";
+}
+`,selected:true},
+		{name:'横转竖',reg_key:/\s/g,reg_value:'\n',selected:false},
+	];
+
+	var reg_search_map = [
+		{name:'匹配数字',reg_key:/(?<=user\:)\d+/g,reg_value:`format = function (v) {
+\treturn v.join("\\n");
+}
+`,selected:true},
+	];
+	
+	for (var i in reg_map) {
+		$('#reg_type').append('<option value="'+i+'" '+ (reg_map[i].selected ? 'selected' : '') +'>'+reg_map[i].name+'</option>');
+	}
+
+	for (var i in reg_search_map) {
+		$('#reg_search_type').append('<option value="'+i+'" '+ (reg_search_map[i].selected ? 'selected' : '') +'>'+reg_search_map[i].name+'</option>');
+	}
+	
+	$('#reg_type').on('change', function(){
+		var i = $(this).val();
+		$('#key_reg').val(reg_map[i].reg_key);
+		$('#value_reg').val(reg_map[i].reg_value);
+	});
+
+	$('#reg_search_type').on('change', function(){
+		var i = $(this).val();
+		$('#key_search_reg').val(reg_search_map[i].reg_key);
+		$('#value_search_reg').val(reg_search_map[i].reg_value);
+	});
+	
+	$('#reg_type').trigger('change');
+	$('#reg_search_type').trigger('change');
+	
+	$('#reg').on('click', function () {
+		$('#res').html("正在处理……");
+		$('.reg-contents').hide();
+		$('#reg_contents').show();
+		
+		try{
+			var key_reg = eval($('#key_reg').val());
+			var value_reg = $('#value_reg').val().replaceAll('\\t', '\t');
+			if (value_reg.indexOf('function') > -1) {
+				eval(value_reg);
+			}
+		}
+		catch(err) {
+			$('#res').val(err);
+			return;
+		}
+	
+	
+		var input = $('#input').val();
+		var res = input.replace(key_reg, value_reg);
+		
+		$('#res').html(res);
+	});
+
+	$('#reg_search').on('click', function () {
+		$('#res').html("正在处理……");
+		$('.reg-contents').hide();
+		$('#reg_search_contents').show();
+
+		try{
+			var key_reg = eval($('#key_search_reg').val());
+			var value_reg = $('#value_search_reg').val();
+			var format = function (val) {
+				return JSON.stringify(val);
+			}
+
+			eval(value_reg);
+
+		}
+		catch(err) {
+			$('#res').val(err);
+			return;
+		}
+
+
+		var input = $('#input').val();
+		var res = input.match(key_reg);
+
+		if (res == null) {
+			$('#res').html('匹配失败');
+			return;
+		}
+
+		$('#res').html(format(res));
+	});
+	
+	
+</script>
+</html>

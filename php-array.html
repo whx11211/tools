@@ -52,7 +52,7 @@
 		var texts = input.split("\n");
 		
 		for(var i in texts) {
-			res += "    '" + texts[i] + "'\n";
+			res += "    '" + texts[i] + "',\n";
 		}
 		
 		$('#res').html("array(\n"+res+");");
