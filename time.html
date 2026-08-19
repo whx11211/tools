@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>常用工具——时间戳转换</title>
+<link href="css/bootstrap.min.css" rel="stylesheet">
+<style>
+h3 { margin-top: 32px; }
+#res td { vertical-align: middle; }
+</style>
+</head>
+
+<body>
+  <div class="container bs-docs-container">
+    <div class="col-xs-12 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+		<h1 id="overview" class="page-header">时间戳转换</h1>
+		<h3>输入</h3>
+		<input id="input" class="form-control form-group" type="text" placeholder="时间戳（秒/毫秒），或 2024-01-15 10:30:00 / 2024-01-15T10:30:00+08:00">
+		
+		<div class="form-group">
+		  <button id="now" class="btn btn-default">当前时间</button>
+		  <button id="clear" class="btn btn-default">清空</button>
+		</div>
+		
+		<div id="tz_input_contents" class="form-group" style="display:none">
+		  <p class="text-warning" style="margin-bottom:8px">输入没有带时区信息，按下面选定的时区解释：</p>
+		  <select id="tz_input" class="form-control"></select>
+		</div>
+		
+		<h3>输出</h3>
+		<p id="parsed" class="text-muted"></p>
+		<table class="table table-bordered" style="table-layout:fixed">
+		  <colgroup>
+			<col style="width:150px">
+			<col>
+			<col style="width:70px">
+			<col style="width:100px">
+		  </colgroup>
+		  <tbody id="res"></tbody>
+		</table>
+	</div>
+  </div>
+</body>
+
+<script src="js/jquery.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script>
+
+	// 所有可选时区，输入解释和输出各行共用同一份
+	var ZONES = [
+		{tz: 'Asia/Shanghai',       name: '上海'},
+		{tz: 'America/Los_Angeles', name: '洛杉矶'},
+		{tz: 'UTC',                 name: 'UTC'},
+		{tz: 'Europe/London',       name: '伦敦'},
+		{tz: 'Asia/Hong_Kong',      name: '香港'},
+		{tz: 'Asia/Tokyo',          name: '东京'},
+		{tz: 'Asia/Singapore',      name: '新加坡'},
+		{tz: 'Asia/Dubai',          name: '迪拜'},
+		{tz: 'Asia/Kolkata',        name: '加尔各答'},
+		{tz: 'Europe/Paris',        name: '巴黎'},
+		{tz: 'Europe/Berlin',       name: '柏林'},
+		{tz: 'Europe/Moscow',       name: '莫斯科'},
+		{tz: 'America/New_York',    name: '纽约'},
+		{tz: 'America/Chicago',     name: '芝加哥'},
+		{tz: 'America/Denver',      name: '丹佛'},
+		{tz: 'America/Sao_Paulo',   name: '圣保罗'},
+		{tz: 'Australia/Sydney',    name: '悉尼'}
+	];
+
+	// 输出四行的默认时区，每行都能改、也能关掉
+	var DEFAULT_ROWS = ['America/Los_Angeles', 'Asia/Shanghai', 'UTC', 'Europe/London'];
+	var DEFAULT_INPUT_TZ = 'Asia/Shanghai';
+	var STORE_KEY = 'time_zones';
+
+	// 表格每次重绘都会新建 select，选中值存在这里而不是从 DOM 读
+	var rowZones = DEFAULT_ROWS.slice();
+	var inputTz = DEFAULT_INPUT_TZ;
+
+	function knownZone(tz) {
+		if (tz === '') {
+			return true;
+		}
+		for (var i = 0; i < ZONES.length; i++) {
+			if (ZONES[i].tz === tz) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	// 存的值可能来自旧版本或被手改过，逐个校验再用；无效时区会让 Intl 直接抛错
+	function loadState() {
+		var saved;
+		try {
+			saved = JSON.parse(window.localStorage.getItem(STORE_KEY));
+		}
+		catch (e) {
+			return;
+		}
+		if (!saved) {
+			return;
+		}
+		if (saved.rows && saved.rows.length === rowZones.length) {
+			for (var i = 0; i < saved.rows.length; i++) {
+				if (knownZone(saved.rows[i])) {
+					rowZones[i] = saved.rows[i];
+				}
+			}
+		}
+		if (saved.inputTz && knownZone(saved.inputTz)) {
+			inputTz = saved.inputTz;
+		}
+	}
+
+	function saveState() {
+		try {
+			window.localStorage.setItem(STORE_KEY, JSON.stringify({rows: rowZones, inputTz: inputTz}));
+		}
+		catch (e) {
+			// 隐私模式下 localStorage 可能不可写，存不上就算了
+		}
+	}
+
+	var WEEKDAY = {Sun:'周日', Mon:'周一', Tue:'周二', Wed:'周三', Thu:'周四', Fri:'周五', Sat:'周六'};
+
+	/**
+	 * 某时区在指定时刻相对 UTC 的偏移（毫秒）
+	 * 把该时刻在目标时区的墙上时间当成 UTC 再反算，差值即偏移
+	 */
+	function zoneOffset(ts, tz) {
+		var dtf = new Intl.DateTimeFormat('en-US', {
+			timeZone: tz, hourCycle: 'h23',
+			year: 'numeric', month: '2-digit', day: '2-digit',
+			hour: '2-digit', minute: '2-digit', second: '2-digit'
+		});
+		var p = {};
+		var parts = dtf.formatToParts(new Date(ts));
+		for (var i = 0; i < parts.length; i++) {
+			p[parts[i].type] = parts[i].value;
+		}
+		var asUtc = Date.UTC(p.year, p.month - 1, p.day, p.hour % 24, p.minute, p.second);
+		return asUtc - ts;
+	}
+
+	function offsetLabel(ms) {
+		var min = Math.round(ms / 60000);
+		var sign = min < 0 ? '-' : '+';
+		min = Math.abs(min);
+		var h = Math.floor(min / 60);
+		var m = min % 60;
+		return 'UTC' + sign + h + (m ? ':' + (m < 10 ? '0' + m : m) : '');
+	}
+
+	/**
+	 * 把某时区的墙上时间转成时间戳
+	 * 先按 UTC 猜一次，用猜出的偏移修正；再算一次以处理夏令时切换附近的情况
+	 */
+	function zonedToTs(parts, tz) {
+		var guess = Date.UTC(parts[0], parts[1] - 1, parts[2], parts[3], parts[4], parts[5]);
+		var ts = guess - zoneOffset(guess, tz);
+		return guess - zoneOffset(ts, tz);
+	}
+
+	function partsToText(p) {
+		function z(n) { return n < 10 ? '0' + n : '' + n; }
+		return p[0] + '-' + z(p[1]) + '-' + z(p[2]) + ' ' + z(p[3]) + ':' + z(p[4]) + ':' + z(p[5]);
+	}
+
+	function formatInZone(ts, tz) {
+		var dtf = new Intl.DateTimeFormat('en-US', {
+			timeZone: tz, hourCycle: 'h23', weekday: 'short',
+			year: 'numeric', month: '2-digit', day: '2-digit',
+			hour: '2-digit', minute: '2-digit', second: '2-digit'
+		});
+		var p = {};
+		var parts = dtf.formatToParts(ts);
+		for (var i = 0; i < parts.length; i++) {
+			p[parts[i].type] = parts[i].value;
+		}
+		return {
+			datetime: p.year + '-' + p.month + '-' + p.day + ' ' + (p.hour % 24 < 10 ? '0' : '') + (p.hour % 24) + ':' + p.minute + ':' + p.second,
+			weekday: WEEKDAY[p.weekday] || p.weekday,
+			offset: offsetLabel(zoneOffset(ts, tz))
+		};
+	}
+
+	/**
+	 * 返回 {ts} 表示已确定时刻，{parts} 表示缺时区信息需要用户指定
+	 */
+	function parseInput(raw) {
+		raw = $.trim(raw);
+		if (!raw) {
+			return null;
+		}
+
+		// 纯数字：时间戳本身是绝对时刻，不存在时区歧义
+		if (/^\d+$/.test(raw)) {
+			if (raw.length >= 9 && raw.length <= 11) {
+				return {ts: parseInt(raw, 10) * 1000, kind: '秒时间戳'};
+			}
+			if (raw.length >= 12 && raw.length <= 14) {
+				return {ts: parseInt(raw, 10), kind: '毫秒时间戳'};
+			}
+			return {error: '数字位数不像时间戳（秒 9-11 位，毫秒 12-14 位）'};
+		}
+
+		// 带明确时区标记：Z / +08:00 / -0700 / GMT / UTC
+		if (/(z|[+-]\d{2}:?\d{2}|gmt|utc)\s*$/i.test(raw)) {
+			// "2024-01-15 10:30:00+08:00" 的空格分隔符部分浏览器不认，换成 T
+			var d = new Date(raw.replace(/^(\d{4}[-\/]\d{1,2}[-\/]\d{1,2}) /, '$1T'));
+			if (!isNaN(d.getTime())) {
+				return {ts: d.getTime(), kind: '输入自带时区'};
+			}
+		}
+
+		// 无时区信息，交给用户选
+		var m = raw.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?\s*$/);
+		if (m) {
+			return {
+				parts: [+m[1], +m[2], +m[3], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0)],
+				kind: '无时区信息'
+			};
+		}
+
+		return {error: '无法识别的格式'};
+	}
+
+	function render() {
+		var parsed = parseInput($('#input').val());
+		var ts = null;
+
+		if (!parsed) {
+			$('#tz_input_contents').hide();
+			$('#parsed').removeClass('text-danger').addClass('text-muted').text('');
+		}
+		else if (parsed.error) {
+			$('#tz_input_contents').hide();
+			$('#parsed').removeClass('text-muted').addClass('text-danger').text(parsed.error);
+		}
+		else {
+			$('#parsed').removeClass('text-danger').addClass('text-muted');
+			var note;
+			if (parsed.parts) {
+				$('#tz_input_contents').show();
+				ts = zonedToTs(parsed.parts, inputTz);
+				note = parsed.kind + '，按 ' + $('#tz_input option:selected').text() + ' 解释';
+				// 夏令时跳表会让某些本地时间根本不存在，回读对不上就说明命中了这个空洞
+				var back = formatInZone(ts, inputTz).datetime;
+				if (back !== partsToText(parsed.parts)) {
+					note += '（该时间在此时区不存在，夏令时跳表，已归到 ' + back + '）';
+				}
+			}
+			else {
+				$('#tz_input_contents').hide();
+				ts = parsed.ts;
+				note = parsed.kind;
+			}
+			$('#parsed').text(note + '　→　秒 ' + Math.floor(ts / 1000) + '　毫秒 ' + ts);
+		}
+
+		// 表格始终渲染：时区选择器长在行里，清空输入也不能让它跟着消失
+		var html = '';
+		for (var i = 0; i < rowZones.length; i++) {
+			html += zoneRow(i, ts);
+		}
+		$('#res').html(html);
+	}
+
+	function zoneRow(index, ts) {
+		var tz = rowZones[index];
+		var cells;
+		if (!tz) {
+			cells = '<td colspan="3" class="text-muted">已关闭</td>';
+		}
+		else if (ts === null) {
+			cells = '<td colspan="3" class="text-muted">—</td>';
+		}
+		else {
+			var f = formatInZone(ts, tz);
+			cells = '<td><strong>' + f.datetime + '</strong></td>'
+				+ '<td>' + f.weekday + '</td>'
+				+ '<td class="text-muted">' + f.offset + '</td>';
+		}
+		return '<tr><td>' + zoneSelect(index) + '</td>' + cells + '</tr>';
+	}
+
+	function zoneSelect(index) {
+		var html = '<select class="form-control input-sm row-tz" data-row="' + index + '">';
+		for (var i = 0; i < ZONES.length; i++) {
+			html += '<option value="' + ZONES[i].tz + '"'
+				+ (ZONES[i].tz === rowZones[index] ? ' selected' : '')
+				+ '>' + ZONES[i].name + '</option>';
+		}
+		html += '<option value=""' + (rowZones[index] === '' ? ' selected' : '') + '>不显示</option>';
+		return html + '</select>';
+	}
+
+	function fillOptions(sel, list) {
+		var html = '';
+		for (var i = 0; i < list.length; i++) {
+			html += '<option value="' + list[i].tz + '">' + list[i].name + '</option>';
+		}
+		$(sel).html(html);
+	}
+
+	loadState();
+	fillOptions('#tz_input', ZONES);
+	$('#tz_input').val(inputTz);
+	render();
+
+	$('#input').on('input', render);
+
+	$('#tz_input').on('change', function () {
+		inputTz = $(this).val();
+		saveState();
+		render();
+	});
+
+	// 委托绑定：表格重绘会换掉这些 select
+	$('#res').on('change', '.row-tz', function () {
+		rowZones[$(this).data('row')] = $(this).val();
+		saveState();
+		render();
+	});
+
+	$('#now').on('click', function () {
+		$('#input').val(Math.floor(new Date().getTime() / 1000));
+		render();
+	});
+
+	$('#clear').on('click', function () {
+		$('#input').val('');
+		render();
+	});
+
+</script>
+</html>

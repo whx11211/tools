@@ -18,6 +18,7 @@
 		  <button id="value" class="btn btn-default">生成值</button>
 		  <button id="key" class="btn btn-default">生成键</button>
 		  <button id="key_value" class="btn btn-default">键+值</button>
+		  <button id="key_value_group" class="btn btn-default">键+值[group]</button>
 		  <button id="value_key" class="btn btn-default">值+键</button>
 		  <button id="reg" class="btn btn-default">正则匹配</button>
 		</div>
@@ -49,10 +50,10 @@
 		var input = $('#input').val();
 		var res = '';
 		
-		var texts = input.split("\n");
+		var texts = input.split(/\n|\t/);
 		
 		for(var i in texts) {
-			res += "    '" + texts[i] + "',\n";
+			res += "    '" + texts[i].replaceAll("'", "\\'") + "',\n";
 		}
 		
 		$('#res').html("array(\n"+res+");");
@@ -74,7 +75,7 @@
 		max_length = Math.ceil(max_length/4) * 4 - 2;
 		
 		for(var i in texts) {
-			res += "    '" + texts[i] + "'" + ' '.repeat(max_length-texts[i].length) + "=>  '',\n";
+			res += "    '" + texts[i].replaceAll("'", "\\'") + "'" + ' '.repeat(max_length-texts[i].length) + "=>  '',\n";
 		}
 		
 		$('#res').html("array(\n"+res+");");
@@ -104,12 +105,54 @@
 				continue;
 			}
 			var text = texts[i].split("\t");
-			res += "    '" + text[0] + "'" + ' '.repeat(max_length-text[0].length) + "=>  '" + text[1] + "',\n";
+			res += "    '" + text[0].replaceAll("'", "\\'") + "'" + ' '.repeat(max_length-text[0].length) + "=>  '" + text[1].replaceAll("'", "\\'") + "',\n";
 		}
 		
 		$('#res').html("array(\n"+res+");");
 	});
 	
+
+	$('#key_value_group').on('click', function () {
+		var input = $('#input').val();
+		var res = '';
+
+		var texts = input.split("\n");
+
+		var max_length = 4;
+		for(var i in texts) {
+			if (texts[i].match(/^\s*$/)) {
+				continue;
+			}
+			var text = texts[i].split("\t");
+			if (text[0].length > max_length) {
+				max_length = text[0].length;
+			}
+		}
+		max_length += 2;
+		max_length = Math.ceil(max_length/4) * 4 - 2;
+
+		var old_key = '';
+		var new_data = [];
+		for(var i in texts) {
+			if (texts[i].match(/^\s*$/)) {
+				continue;
+			}
+			var text = texts[i].split("\t");
+			old_key = text[0] ? text[0] : old_key;
+			if (new_data[old_key] == undefined) {
+				new_data[old_key] = [];
+			}
+			new_data[old_key].push(text[1]);
+		}
+
+		for (var i in new_data) {
+			var s = JSON.stringify(new_data[i]);
+			res += "    '" + i.replaceAll("'", "\\'") + "'" + ' '.repeat(max_length-text[0].length) + "=>  " + s + ",\n";
+		}
+
+		$('#res').html("array(\n"+res+");");
+	});
+
 	$('#value_key').on('click', function () {
 		var input = $('#input').val();
 		var res = '';
@@ -200,11 +243,11 @@
 			var key_match = texts[i].match(key_reg);
 			var value_match = texts[i].match(value_reg);
 			
-			if (!key_match || !key_match) {
+			if (!key_match || !value_match) {
 				res += '//' + texts[i] + "\n";
 			}
 			else {
-				res += "    '" + key_match[0] + "'" + ' '.repeat(max_length-key_match[0].length) + "=>  '" + value_match[0] + "',\n";
+				res += "`"+key_match[0]+"` UInt64 COMMENT '"+value_match[0]+"',\n"
 			}
 		}
 		

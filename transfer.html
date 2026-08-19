@@ -103,10 +103,22 @@
 	];
 
 	var reg_search_map = [
+		{name:'数字逗号分隔',reg_key:/\d+/g,reg_value:`format = function (v) {
+\treturn v.join(",");
+}
+`,selected:true},
 		{name:'匹配数字',reg_key:/(?<=user\:)\d+/g,reg_value:`format = function (v) {
 \treturn v.join("\\n");
 }
-`,selected:true},
+`,selected:false},
+		{name:'字符逐行配置',reg_key:/[^\n]+/g,reg_value:`format = function (v) {
+\tfor(i in v) {
+\t\tv[i] = v[i].replace(/'/g, "\\'");
+\t\tv[i] = "'" + v[i] + "'"
+\t}
+	return v.join(",");
+}
+`,selected:false},
 	];
 	
 	for (var i in reg_map) {

@@ -18,6 +18,8 @@
 		  <button id="url_decode" class="btn btn-default">URL解码</button>
 		  <button id="base64_encode" class="btn btn-default">Base64编码</button>
 		  <button id="base64_decode" class="btn btn-default">Base64解码</button>
+		  <button id="html_encode" class="btn btn-default">HTML编码</button>
+		  <button id="html_decode" class="btn btn-default">HTML解码</button>
 		  <button id="md5" class="btn btn-default">md5</button>
 		</div>
 		<h3>输出</h3>
@@ -30,12 +32,14 @@
 <script src="js/bootstrap.min.js"></script>
 <script>
 	
+	// 输出一律用 text() 而不是 html()：解码类结果可能含标签，用 html() 会被当页面渲染
+	
 	$('#url_encode').on('click', function () {
-		$('#res').html(encodeURIComponent($('#input').val()));
+		$('#res').text(encodeURIComponent($('#input').val()));
 	});
 	
 	$('#url_decode').on('click', function () {
-		$('#res').html(decodeURIComponent($('#input').val()));
+		$('#res').text(decodeURIComponent($('#input').val()));
 	});
 	
 	var Base64 = {
@@ -134,11 +138,32 @@
 	
 		
 	$('#base64_encode').on('click', function () {
-		$('#res').html(Base64.encode($('#input').val()));
+		$('#res').text(Base64.encode($('#input').val()));
 	});
 	
 	$('#base64_decode').on('click', function () {
-		$('#res').html(Base64.decode($('#input').val()));
+		$('#res').text(Base64.decode($('#input').val()));
+	});
+	
+	function htmlEncode(input) {
+		return input.replace(/[&<>"']/g, function (c) {
+			return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+		});
+	}
+	
+	// 用 textarea 解码：内容按纯文本解析，只还原字符实体，不会执行或生成注入的标签
+	function htmlDecode(input) {
+		var el = document.createElement('textarea');
+		el.innerHTML = input;
+		return el.value;
+	}
+	
+	$('#html_encode').on('click', function () {
+		$('#res').text(htmlEncode($('#input').val()));
+	});
+	
+	$('#html_decode').on('click', function () {
+		$('#res').text(htmlDecode($('#input').val()));
 	});
 	
 	function md5(string) {
@@ -346,7 +371,7 @@
 	}
 	
 	$('#md5').on('click', function () {
-		$('#res').html(md5($('#input').val()));
+		$('#res').text(md5($('#input').val()));
 	});
 	
 </script>
