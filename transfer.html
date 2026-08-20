@@ -83,14 +83,14 @@
 			res2 += res[i].substring(0, res[i].length-2) + "\n\n\n";
 		}
 
-		$('#res').html(res2);
+		$('#res').text(res2);
 	});
 
     $('#url_param').on('click', function () {
 		var input = $('#input').val();
 
 		var texts = input.replaceAll('&', '\n').replaceAll('=', ':');
-		$('#res').html(texts);
+		$('#res').text(texts);
 	});
 
 	
@@ -145,7 +145,7 @@
 	$('#reg_search_type').trigger('change');
 	
 	$('#reg').on('click', function () {
-		$('#res').html("正在处理……");
+		$('#res').text("正在处理……");
 		$('.reg-contents').hide();
 		$('#reg_contents').show();
 		
@@ -165,11 +165,11 @@
 		var input = $('#input').val();
 		var res = input.replace(key_reg, value_reg);
 		
-		$('#res').html(res);
+		$('#res').text(res);
 	});
 
 	$('#reg_search').on('click', function () {
-		$('#res').html("正在处理……");
+		$('#res').text("正在处理……");
 		$('.reg-contents').hide();
 		$('#reg_search_contents').show();
 
@@ -193,11 +193,11 @@
 		var res = input.match(key_reg);
 
 		if (res == null) {
-			$('#res').html('匹配失败');
+			$('#res').text('匹配失败');
 			return;
 		}
 
-		$('#res').html(format(res));
+		$('#res').text(format(res));
 	});
 	
 	

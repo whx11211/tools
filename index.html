@@ -3,31 +3,118 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<title>
-	常用工具
-</title>
+<title>常用工具</title>
 <link href="css/bootstrap.min.css" rel="stylesheet">
 <link href="css/font-awesome.min.css" rel="stylesheet">
+<style>
+html, body { height: 100%; margin: 0; }
+#layout { display: flex; height: 100%; }
+
+#sidebar {
+	width: 180px;
+	flex: none;
+	overflow-y: auto;
+	background: #f7f7f9;
+	border-right: 1px solid #ddd;
+	padding: 15px 0;
+}
+#sidebar h1 {
+	font-size: 20px;
+	margin: 0 0 15px;
+	padding: 0 15px 12px;
+	border-bottom: 1px solid #ddd;
+}
+#sidebar .nav > li > a { border-radius: 0; padding: 9px 15px; color: #333; }
+#sidebar .nav > li > a:hover { background: #e8e8ec; }
+#sidebar .nav > li.active > a,
+#sidebar .nav > li.active > a:hover { background: #428bca; color: #fff; }
+
+#content { flex: 1; border: 0; width: 100%; height: 100%; }
+
+/* 窄屏改成上下排布，菜单横向滚动 */
+@media (max-width: 640px) {
+	#layout { flex-direction: column; }
+	#sidebar { width: auto; border-right: 0; border-bottom: 1px solid #ddd; }
+}
+</style>
 </head>
 
 <body>
-	<div class="container bs-docs-container">
-	  <div class="col-md-8 col-md-offset-2">
-		<h1 id="overview" class="page-header">常用工具</h1>
-		<ol>
-			<li class="lead"><a href="json.html">JSON格式化</a></li>
-			<li class="lead"><a href="code.html">编码工具</a></li>
-			<li class="lead"><a href="time.html">时间戳转换</a></li>
-			<li class="lead"><a href="php-array.html">PHP数组助手</a></li>
-			<li class="lead"><a href="php-online.html">PHP在线执行</a></li>
-			<li class="lead"><a href="ajax.html">接口测试</a></li>
-			<li class="lead"><a href="compare.html">文本对比</a></li>
-			<li class="lead"><a href="transfer.html">文本转化</a></li>
-		</ol>
-	  </div>
+	<div id="layout">
+		<div id="sidebar">
+			<h1>常用工具</h1>
+			<ul class="nav nav-pills nav-stacked">
+				<li><a href="json.html"       target="content">JSON格式化</a></li>
+				<li><a href="code.html"       target="content">编码工具</a></li>
+				<li><a href="time.html"       target="content">时间戳转换</a></li>
+				<li><a href="php-array.html"  target="content">PHP数组助手</a></li>
+				<li><a href="php-online.html" target="content">PHP在线执行</a></li>
+				<li><a href="ajax.html"       target="content">接口测试</a></li>
+				<li><a href="compare.html"    target="content">文本对比</a></li>
+				<li><a href="transfer.html"   target="content">文本转化</a></li>
+			</ul>
+		</div>
+		<iframe id="content" name="content"></iframe>
 	</div>
 </body>
 
 <script src="js/jquery.min.js"></script>
 <script src="js/bootstrap.min.js"></script>
+<script>
+
+	// 历史记录只由 hash 产生：iframe 一律用 location.replace 导航，不让它自己压栈，
+	// 否则一次点击会留下两条记录，后退时出现 iframe 已退、高亮没退的错位
+
+	function activate(page) {
+		var $link = $('#sidebar a[href="' + page + '"]');
+		if (!$link.length) {
+			return false;
+		}
+		$('#sidebar li').removeClass('active');
+		$link.parent().addClass('active');
+		document.title = $link.text() + ' - 常用工具';
+		return true;
+	}
+
+	// hash 来自地址栏，可能被人构造成外部地址，只认菜单里真实存在的项
+	function currentPage() {
+		var page = decodeURIComponent(location.hash.replace(/^#/, ''));
+		if (page && $('#sidebar a[href="' + page + '"]').length) {
+			return page;
+		}
+		return $('#sidebar a').first().attr('href');
+	}
+
+	function show(page) {
+		if (!activate(page)) {
+			return;
+		}
+		var frame = document.getElementById('content');
+		if (frame.contentWindow.location.href === 'about:blank') {
+			frame.src = page;
+		}
+		else {
+			frame.contentWindow.location.replace(page);
+		}
+	}
+
+	$('#sidebar a').on('click', function (e) {
+		e.preventDefault();
+		var page = $(this).attr('href');
+		if (location.hash.replace(/^#/, '') === page) {
+			show(page);          // hash 没变不会触发 hashchange，手动走一次
+		}
+		else {
+			location.hash = page;
+		}
+	});
+
+	$(window).on('hashchange', function () {
+		show(currentPage());
+	});
+
+	// 首屏不写 hash，保持地址干净；后退回到无 hash 时同样落到首项
+	show(currentPage());
+
+</script>
 </html>

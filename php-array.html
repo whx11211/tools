@@ -56,7 +56,7 @@
 			res += "    '" + texts[i].replaceAll("'", "\\'") + "',\n";
 		}
 		
-		$('#res').html("array(\n"+res+");");
+		$('#res').text("array(\n"+res+");");
 	});
 	
 	$('#key').on('click', function () {
@@ -78,7 +78,7 @@
 			res += "    '" + texts[i].replaceAll("'", "\\'") + "'" + ' '.repeat(max_length-texts[i].length) + "=>  '',\n";
 		}
 		
-		$('#res').html("array(\n"+res+");");
+		$('#res').text("array(\n"+res+");");
 	});
 	
 	$('#key_value').on('click', function () {
@@ -108,7 +108,7 @@
 			res += "    '" + text[0].replaceAll("'", "\\'") + "'" + ' '.repeat(max_length-text[0].length) + "=>  '" + text[1].replaceAll("'", "\\'") + "',\n";
 		}
 		
-		$('#res').html("array(\n"+res+");");
+		$('#res').text("array(\n"+res+");");
 	});
 	
 
@@ -150,7 +150,7 @@
 			res += "    '" + i.replaceAll("'", "\\'") + "'" + ' '.repeat(max_length-text[0].length) + "=>  " + s + ",\n";
 		}
 
-		$('#res').html("array(\n"+res+");");
+		$('#res').text("array(\n"+res+");");
 	});
 
 	$('#value_key').on('click', function () {
@@ -180,7 +180,7 @@
 			res += "    '" + text[1] + "'" + ' '.repeat(max_length-text[1].length) + "=>  '" + text[0] + "',\n";
 		}
 		
-		$('#res').html("array(\n"+res+");");
+		$('#res').text("array(\n"+res+");");
 	});
 	
 	var reg_map = [
@@ -200,7 +200,7 @@
 	$('#reg_type').trigger('change');
 	
 	$('#reg').on('click', function () {
-		$('#res').html("正在处理……");
+		$('#res').text("正在处理……");
 		if ($('#reg_contents').is(':hidden')) {
 			$('#reg_contents').css('display', 'flex');
 			return;
@@ -251,7 +251,7 @@
 			}
 		}
 		
-		$('#res').html("array(\n"+res+");");
+		$('#res').text("array(\n"+res+");");
 	});
 	
 	

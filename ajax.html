@@ -60,9 +60,12 @@
 		params.url = $('#url').val();
 		params.request_type = $('#type').val();
 		
-		$('#res').html('请求中……');
+		$('#res').text('请求中……');
 		$.post('php/?type=curl', params, function(res){
-			$('#res').html(res);
+			$('#res').text(res);
+		}).fail(function(xhr){
+			// 后端拦截（SSRF 防护）返回的是 400，不走 success，没有这里会一直停在「请求中……」
+			$('#res').text('请求失败 HTTP ' + xhr.status + '：' + (xhr.responseText || '无响应'));
 		});
 	});
 	
