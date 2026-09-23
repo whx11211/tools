@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>常用工具——数据对比</title>
+<link href="css/bootstrap.min.css" rel="stylesheet">
+<style>
+.res-box { min-height:260px; padding:10px 18px; white-space:pre-wrap; word-break:break-all; }
+.count { font-weight:normal; color:#999; font-size:14px; }
+</style>
+</head>
+
+<body>
+  <div class="container bs-docs-container">
+    <div class="col-xs-12">
+		<h1 class="page-header">数据对比工具</h1>
+
+		<div class="row form-group">
+			<div class="col-sm-6">
+				<h3>左边 <small class="count" id="left_count"></small></h3>
+				<textarea id="left" class="form-control" rows="14" placeholder="一行一条"></textarea>
+			</div>
+			<div class="col-sm-6">
+				<h3>右边 <small class="count" id="right_count"></small></h3>
+				<textarea id="right" class="form-control" rows="14" placeholder="一行一条"></textarea>
+			</div>
+		</div>
+
+		<div class="form-group">
+			<button id="compare" class="btn btn-primary">对比</button>
+			&nbsp;&nbsp;
+			<button id="swap" class="btn btn-default">左右互换</button>
+			<button id="clear" class="btn btn-default">清空</button>
+			&nbsp;&nbsp;
+			<label class="checkbox-inline"><input type="checkbox" id="opt_trim" checked> 去掉首尾空白</label>
+			<label class="checkbox-inline"><input type="checkbox" id="opt_empty" checked> 忽略空行</label>
+			<label class="checkbox-inline"><input type="checkbox" id="opt_case"> 忽略大小写</label>
+			<label class="checkbox-inline"><input type="checkbox" id="opt_split"> 按逗号/制表符再拆分</label>
+		</div>
+
+		<div class="row">
+			<div class="col-sm-6">
+				<h3>左边有、右边没有 <small class="count" id="only_left_count"></small></h3>
+				<pre id="only_left" class="res-box"></pre>
+			</div>
+			<div class="col-sm-6">
+				<h3>右边有、左边没有 <small class="count" id="only_right_count"></small></h3>
+				<pre id="only_right" class="res-box"></pre>
+			</div>
+		</div>
+	</div>
+  </div>
+</body>
+
+<script src="js/jquery.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script>
+
+	// 拆行后按去重集合比较；原始行文本原样输出，展示一律用 text() 防注入
+	function parse(text) {
+		var trim  = $('#opt_trim').prop('checked');
+		var skip  = $('#opt_empty').prop('checked');
+		var lower = $('#opt_case').prop('checked');
+		var split = $('#opt_split').prop('checked');
+
+		var lines = text.split(/\r\n|\r|\n/);
+		if (split) {
+			var parts = [];
+			for (var i = 0; i < lines.length; i++) {
+				parts = parts.concat(lines[i].split(/[,，\t]/));
+			}
+			lines = parts;
+		}
+
+		var list = [];       // 去重后的原始文本，保持首次出现的顺序
+		var keys = {};       // 比较用的 key -> true，用前缀避开 Object 原型上的同名属性
+		var total = 0;
+
+		for (var j = 0; j < lines.length; j++) {
+			var raw = trim ? lines[j].replace(/^\s+|\s+$/g, '') : lines[j];
+			if (skip && raw === '') {
+				continue;
+			}
+			total++;
+			var key = '#' + (lower ? raw.toLowerCase() : raw);
+			if (keys[key]) {
+				continue;
+			}
+			keys[key] = true;
+			list.push({key: key, raw: raw});
+		}
+
+		return {list: list, keys: keys, total: total};
+	}
+
+	function diff(a, b) {
+		var res = [];
+		for (var i = 0; i < a.list.length; i++) {
+			if (!b.keys[a.list[i].key]) {
+				res.push(a.list[i].raw);
+			}
+		}
+		return res;
+	}
+
+	function compare() {
+		var left  = parse($('#left').val());
+		var right = parse($('#right').val());
+
+		var onlyLeft  = diff(left, right);
+		var onlyRight = diff(right, left);
+
+		$('#left_count').text('共 ' + left.total + ' 行，去重 ' + left.list.length);
+		$('#right_count').text('共 ' + right.total + ' 行，去重 ' + right.list.length);
+
+		$('#only_left').text(onlyLeft.join("\n"));
+		$('#only_right').text(onlyRight.join("\n"));
+		$('#only_left_count').text(onlyLeft.length + ' 条');
+		$('#only_right_count').text(onlyRight.length + ' 条');
+	}
+
+	$('#compare').on('click', compare);
+
+	$('#swap').on('click', function () {
+		var left = $('#left').val();
+		$('#left').val($('#right').val());
+		$('#right').val(left);
+		compare();
+	});
+
+	$('#clear').on('click', function () {
+		$('#left, #right').val('');
+		$('.res-box').text('');
+		$('.count').text('');
+	});
+
+	// 改选项后如果已经对比过，直接跟着刷新
+	$('#opt_trim, #opt_empty, #opt_case, #opt_split').on('change', function () {
+		if ($('#left').val() !== '' || $('#right').val() !== '') {
+			compare();
+		}
+	});
+
+</script>
+</html>
