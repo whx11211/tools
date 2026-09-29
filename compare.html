@@ -16,6 +16,8 @@
 	  &nbsp;&nbsp;
 	  <button id="swap" class="btn btn-default"><i class="fa fa-fw fa-exchange"></i></button>
 	  &nbsp;&nbsp;
+	  <button id="sort" class="btn btn-default" title="两侧都按行排序"><i class="fa fa-fw fa-sort-alpha-asc"></i></button>
+	  &nbsp;&nbsp;
 	  <button id="left" class="btn btn-default"><i class="fa fa-fw fa-arrow-left"></i></button>
 	  <button id="right" class="btn btn-default"><i class="fa fa-fw fa-arrow-right"></i></button>
     </div>
@@ -52,6 +54,18 @@ $(document).ready(function () {
 	
 	$('#swap').on('click', function(){
 		$('#mergely').mergely('swap');
+	});
+
+	// 两侧各自按行排序，把顺序不同但内容相同的行对齐后再看差异
+	$('#sort').on('click', function(){
+		$.each(['lhs', 'rhs'], function(i, side){
+			var lines = $('#mergely').mergely('get', side).split(/\r\n|\r|\n/);
+			// numeric 让 item2 排在 item10 前面，比纯字符序更符合数据列表的直觉
+			lines.sort(function(a, b){
+				return a.localeCompare(b, undefined, {numeric: true});
+			});
+			$('#mergely').mergely(side, lines.join("\n"));
+		});
 	});
 	
 	$('#right').on('click', function(){
